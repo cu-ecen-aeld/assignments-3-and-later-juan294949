@@ -123,7 +123,7 @@ bool do_exec(int count, ...)
   int i;
   for(i=0; i<count; i++)
   {
-      command[i] = va_arg(args, char *);
+    command[i] = va_arg(args, char *);
   }
   command[count] = NULL;
   command[count] = command[count];
@@ -178,7 +178,7 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
   // this line is to avoid a compile warning before your implementation is complete
   // and may be removed
   command[count] = command[count];
-
+	
 /*
  * TODO
  *   Call execv, but first using https://stackoverflow.com/a/13784315/1446624 as a refernce,
@@ -189,15 +189,35 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
 // Source - https://stackoverflow.com/a
 // Posted by tmyklebu, modified by community. See post 'Timeline' for change history
 // Retrieved 2026-01-06, License - CC BY-SA 3.0
-int fd = open(outputfile, O_WRONLY|O_TRUNC|O_CREAT, 0666); // write the command to the file openned here.
-
+  int fd = open(outputfile, O_WRONLY|O_TRUNC|O_CREAT, 0666); // write the command to the file openned here.
+// REDIRECT_FILE, 3, "/bin/sh", "-c", "echo home is $HOME"
+	int  stdout_ = dup(STDOUT_FILENO);
 if (fd >= 0)
 {
-	dup2(fd,STDOUT_FILENO);
-	close(fd);
-	status = do_exec(count,command);
-} else perror("\n\ropen");
+	dup2(fd,STDOUT_FILENO); // Standart output redirects to the openned file testfile.txt.
+	close(fd); // close the file descriptor.
+	switch (count)
+	{
+		case 2:
+		{
+			status = do_exec(count,*command,*(command +1));
+			break;
+		}
+		case 3:
+		{
+			status = do_exec(count,*command,*(command +1),*(command+2));
+			break;
+		}
+		default:
+		{
+			break;
+		}
+	}
+} else{ perror("\n\ropen");}
 
+	dup2(stdout_,STDOUT_FILENO);
+	close(stdout_);
   va_end(args);
+	
   return status;
 }
