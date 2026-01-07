@@ -10,40 +10,6 @@
 #include <unistd.h> 
 #include <stdlib.h>
 
-/* Note From assignment3-part1 implement the TODO there related to video content and system() and exec() functions.  
-  See provided test code in */
-	/*
-		pid_t wait(int *_Nullable wstatus);
-  	pid_t waitpid(pid_t pid, int *_Nullable wstatus, int options);
-	
-			wait() and waitpid()
-       The wait() system call suspends execution of the calling thread
-       until one of its children terminates.  The call wait(&wstatus) is
-       equivalent to:
-
-        waitpid(-1, &wstatus, 0);
-
-       The waitpid() system call suspends execution of the calling thread
-       until a child specified by pid argument has changed state.  By
-       default, waitpid() waits only for terminated children, but this
-       behavior is modifiable via the options argument, as described
-       below.
-
-       The value of pid can be:
-
-       < -1   meaning wait for any child process whose process group ID
-              is equal to the absolute value of pid.
-
-       -1     meaning wait for any child process.
-
-       0      meaning wait for any child process whose process group ID
-              is equal to that of the calling process at the time of the
-              call to waitpid().
-
-       > 0    meaning wait for the child whose process ID is equal to the
-              value of pid.
-	*/
-
 /**
  * @param cmd the command to execute with system()
  * @return true if the command in @param cmd was executed
@@ -175,49 +141,33 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     command[i] = va_arg(args, char *);
   }
   command[count] = NULL;
-  // this line is to avoid a compile warning before your implementation is complete
-  // and may be removed
   command[count] = command[count];
-	
-/*
- * TODO
- *   Call execv, but first using https://stackoverflow.com/a/13784315/1446624 as a refernce,
- *   redirect standard out to a file specified by outputfile.
- *   The rest of the behaviour is same as do_exec()
- *
-*/
-// Source - https://stackoverflow.com/a
-// Posted by tmyklebu, modified by community. See post 'Timeline' for change history
-// Retrieved 2026-01-06, License - CC BY-SA 3.0
-  int fd = open(outputfile, O_WRONLY|O_TRUNC|O_CREAT, 0666); // write the command to the file openned here.
-// REDIRECT_FILE, 3, "/bin/sh", "-c", "echo home is $HOME"
-	int  stdout_ = dup(STDOUT_FILENO);
-if (fd >= 0)
-{
-	dup2(fd,STDOUT_FILENO); // Standart output redirects to the openned file testfile.txt.
-	close(fd); // close the file descriptor.
-	switch (count)
-	{
-		case 2:
-		{
-			status = do_exec(count,*command,*(command +1));
-			break;
-		}
-		case 3:
-		{
-			status = do_exec(count,*command,*(command +1),*(command+2));
-			break;
-		}
-		default:
-		{
-			break;
-		}
-	}
-} else{ perror("\n\ropen");}
 
-	dup2(stdout_,STDOUT_FILENO);
-	close(stdout_);
+   int pid = fork();
+
+  	if (pid == 0) {
+
+    int fd = open(outputfile, O_TRUNC | O_WRONLY | O_CREAT, 0644);
+    if (fd < 0) {
+      _exit(1);
+    }
+    dup2(fd, STDOUT_FILENO);
+    close(fd);
+    execv(command[0], command);
+    perror("Error:");
+    _exit(EXIT_FAILURE);
+  } 
+	else if (pid < 0)
+	{
+    perror("Error:");
+    va_end(args);
+  } 
+	else 
+	{
+    waitpid(pid, NULL, 0);
+    status = true;
+  }
   va_end(args);
-	
+
   return status;
 }
